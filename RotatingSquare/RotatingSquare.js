@@ -27,7 +27,7 @@
   * Degrees of rotation.
   * @type {Number}
   */
-    var degrees = 2 * Math.PI / 180;
+    var degrees = -2 * Math.PI / 180;
 
  /**
   * Possible inputs.
