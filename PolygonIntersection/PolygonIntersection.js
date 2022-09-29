@@ -196,7 +196,7 @@ function convexPolysIntersect(poly, poly2) {
     return false;
 }
 
-function intersection(rect, rectTwo) {
+function rectRectintersection(rect, rectTwo) {
     let V = SAT.Vector;
     let P = SAT.Polygon;
 
@@ -206,6 +206,42 @@ function intersection(rect, rectTwo) {
 
     let polygon2 = new P(new V(), [
         new V(rectTwo[0][0], rectTwo[0][1]), new V(rectTwo[1][0], rectTwo[1][1]), new V(rectTwo[2][0], rectTwo[2][1]), new V(rectTwo[3][0], rectTwo[3][1])
+    ]);
+
+    let response;
+    let collided = SAT.testPolygonPolygon(polygon1, polygon2, response);
+
+    return collided;
+}
+
+function rectTriangleIntersection(rect, triangle) {
+    let V = SAT.Vector;
+    let P = SAT.Polygon;
+
+    let polygon1 = new P(new V(), [
+        new V(rect[0][0], rect[0][1]), new V(rect[1][0], rect[1][1]), new V(rect[2][0], rect[2][1]), new V(rect[3][0], rect[3][1])
+    ]);
+
+    let polygon2 = new P(new V(), [
+        new V(triangle[0][0], triangle[0][1]), new V(triangle[1][0], triangle[1][1]), new V(triangle[2][0], triangle[2][1])
+    ]);
+
+    let response;
+    let collided = SAT.testPolygonPolygon(polygon1, polygon2, response);
+
+    return collided;
+}
+
+function triangleTriangleIntersection(triangle, triangleTwo) {
+    let V = SAT.Vector;
+    let P = SAT.Polygon;
+
+    let polygon1 = new P(new V(), [
+        new V(triangle[0][0], triangle[0][1]), new V(triangle[1][0], triangle[1][1]), new V(triangle[2][0], triangle[2][1])
+    ]);
+
+    let polygon2 = new P(new V(), [
+        new V(triangleTwo[0][0], triangleTwo[0][1]), new V(triangleTwo[1][0], triangleTwo[1][1]), new V(triangleTwo[2][0], triangleTwo[2][1])
     ]);
 
     let response;
@@ -258,15 +294,65 @@ function convexPolyCircleIntersect(poly, center, radius) {
  * @see https://milania.de/blog/Intersection_area_of_two_circles_with_implementation_in_C%2B%2B
  * @see <img src="../IntersectingCirclesArea_CircularSegmentsSmallAngle.png" width="320">
  */
-function circleCircleIntersect(center1, radius1, center2, radius2) {
+function circleCircleIntersection(c1, c2) {
+    let center1 = c1[0];
+    let radius1 = vec2d.dist(c1[0], c1[1]);
+    let center2 = c2[0];
+    let radius2 = vec2d.dist(c2[0], c2[1]);
     let d = vec2d.dist(center1, center2);
     if (d > radius1 + radius2) {
         return false;
     }
-    if (d < Math.abs(radius1 - radius2)) {
-        return false;
+    return true;
+}
+
+function distToSegment(p, a, b) {
+    const v = vec2d.sub([], b, a);
+    const vlen = vec2d.dist(a, b);
+    const vnorm = vec2d.scale([], v, 1 / vlen);
+    const ap = vec2d.sub([], p, a);
+    const t = vec2d.dot(vnorm, ap);
+    if (t < 0) return vec2d.dist(p, a);
+    if (t > vlen) return vec2d.dist(p, b);
+    return vec2d.len(vec2d.sub([], ap, vec2d.scale([], vnorm, t)));
+}
+
+function pointInConvexPoly(p, poly) {
+    let prevPoint = poly[poly.length - 1];
+    let prevOrient = 0;
+    for (let q of poly) {
+        const o = vec2d.orient(prevPoint, q, p);
+        if (Math.abs(o - prevOrient) > 1) return false;
+        prevOrient = o;
+        prevPoint = q;
     }
     return true;
+}
+
+function circleRectIntersection(c, r) {
+    let circleCenter = c[0];
+    let radius = vec2d.dist(c[0], c[1]);
+    let rectanglePoints = rectangle(r);
+
+    if (pointInConvexPoly(circleCenter, rectanglePoints)) return true;
+    for (let i = 0; i < 4; i++) {
+        if (distToSegment(circleCenter, rectanglePoints[i], rectanglePoints[(i + 1) % 4]) <= radius) return true;
+    }
+
+    return false;
+}
+
+function circleTriangleIntersection(c, t) {
+    let circleCenter = c[0];
+    let radius = vec2d.dist(c[0], c[1]);
+    let trianglePoints = isosceles(t);
+
+    if (pointInConvexPoly(circleCenter, trianglePoints)) return true;
+    for (let i = 0; i < 3; i++) {
+        if (distToSegment(circleCenter, trianglePoints[i], trianglePoints[(i + 1) % 3]) <= radius) return true;
+    }
+
+    return false;
 }
 
 /**
@@ -313,109 +399,6 @@ function midPoints(poly) {
 }
 
 /**
- * <p>Demo: Teste de interseÃ§Ã£o entre triÃ¢ngulos.</p>
- *
- * Mova interativamente os pontos Ã¢ncora para alterar a configuraÃ§Ã£o dos triÃ¢ngulos.<br>
- * Se houver interseÃ§Ã£o, o desenho serÃ¡ vermelho, caso contrÃ¡rio, preto.
- *
- * <p>TriÃ¢ngulos sÃ£o descritos por objetos:</p>
- * { basePoint: [270, 350], oppositeVertex: [300, 200], color: "black" }
- *
- * @name isoscelesDemo
- * @function
- */
-(function isoscelesDemo() {
-    const demo = document.querySelector("#theCanvas");
-    const ctx = demo.getContext("2d");
-    let [w, h] = [demo.clientWidth, demo.clientHeight];
-    const iso = [
-        { basePoint: [270, 350], oppositeVertex: [300, 200], color: "black" },
-        { basePoint: [100, 50], oppositeVertex: [50, 20], color: "black" },
-        { basePoint: [250, 150], oppositeVertex: [150, 100], color: "black" },
-    ];
-
-    function makePts() {
-        for (let t of iso) {
-            t.poly = isosceles(t);
-            t.anchors = [t.basePoint, t.oppositeVertex];
-        }
-    }
-
-    makePts();
-    let sel = null;
-    let prevMouse = null;
-
-    const update = () => {
-        fillCanvas(ctx, w, h);
-
-        // tri âˆ© tri
-        for (let t1 of iso) {
-            t1.color = "black";
-            for (let t2 of iso) {
-                if (t1 == t2) continue;
-                let intersect = convexPolysIntersect(t1.poly, t2.poly);
-                if (intersect) {
-                    t1.color = "red";
-                    t2.color = "red";
-                }
-            }
-        }
-
-        for (let t of iso) {
-            ctx.fillStyle = ctx.strokeStyle = t.color;
-            for (let p of t.anchors) {
-                ctx.beginPath();
-                ctx.arc(...p, 5, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            ctx.beginPath();
-            for (let p of t.poly) {
-                ctx.lineTo(...p);
-            }
-            ctx.closePath();
-            ctx.stroke();
-        }
-    };
-    update();
-
-    demo.onmousemove = (e) => {
-        if (sel) {
-            let mouse = [e.offsetX, e.offsetY];
-            let [tri, ianchor] = sel;
-            let delta = vec2d.sub([], mouse, prevMouse);
-            prevMouse = mouse;
-            if (ianchor == 0) {
-                let v = vec2d.sub([], tri.oppositeVertex, tri.basePoint);
-                vec2d.add(tri.basePoint, tri.basePoint, delta);
-                vec2d.add(tri.oppositeVertex, tri.basePoint, v);
-            } else {
-                vec2d.add(tri.oppositeVertex, tri.oppositeVertex, delta);
-            }
-            makePts();
-            update();
-        }
-    };
-
-    demo.onmousedown = (e) => {
-        sel = null;
-        const mouse = [e.offsetX, e.offsetY];
-        prevMouse = mouse;
-        for (let tri of iso) {
-            for (let [ianchor, p] of tri.anchors.entries()) {
-                if (vec2d.distance(mouse, p) <= 5) {
-                    sel = [tri, ianchor];
-                }
-            }
-        }
-    };
-
-    demo.onmouseup = () => {
-        sel = null;
-    };
-    update();
-})();
-
-/**
  * Returns the 3 vertices of an isosceles triangle
  * defined by the center point of its base and the
  * opposite vertex.
@@ -426,7 +409,9 @@ function midPoints(poly) {
  * @see https://en.wikipedia.org/wiki/Isosceles_triangle
  * @see <img src="../Isosceles-Triangle.png" width="256">
  */
-function isosceles({ basePoint, oppositeVertex }) {
+function isosceles(tri) {
+    let basePoint = tri[0];
+    let oppositeVertex = tri[1];
     const u = vec2d.sub([], basePoint, oppositeVertex);
     const v = [-u[1], u[0]];
     const w = [u[1], -u[0]];
@@ -437,7 +422,12 @@ function isosceles({ basePoint, oppositeVertex }) {
     ];
 }
 
-(function rectangleDemo() {
+function radius(points) {
+    let radius = Math.abs(vec2.distance(points[0], points[1]));
+    return radius;
+}
+
+(function PolygonsDemo() {
     const demo = document.querySelector("#theCanvas");
     const ctx = demo.getContext("2d");
     let [w, h] = [demo.clientWidth, demo.clientHeight];
@@ -450,18 +440,48 @@ function isosceles({ basePoint, oppositeVertex }) {
             [100 - 25, 100 + 25]
         ],
         [
-            [200, 200],
-            [200 + 25, 200 + 25],
-            [200 + 25, 200 - 25],
-            [200 - 25, 200 - 25],
-            [200 - 25, 200 + 25]
+            [100, 250],
+            [100 + 25, 250 + 25],
+            [100 + 25, 250 - 25],
+            [100 - 25, 250 - 25],
+            [100 - 25, 250 + 25]
         ],
         [
-            [300, 300],
-            [300 + 25, 300 + 25],
-            [300 + 25, 300 - 25],
-            [300 - 25, 300 - 25],
-            [300 - 25, 300 + 25]
+            [100, 400],
+            [100 + 25, 400 + 25],
+            [100 + 25, 400 - 25],
+            [100 - 25, 400 - 25],
+            [100 - 25, 400 + 25]
+        ],
+    ];
+
+    const circle = [
+        [
+            [250, 100],
+            [250 + 25, 100 + 25],
+        ],
+        [
+            [250, 250],
+            [250 + 25, 250 + 25],
+        ],
+        [
+            [250, 400],
+            [250 + 25, 400 + 25],
+        ],
+    ];
+
+    const triangle = [
+        [
+            [400, 100],
+            [400, 100 + 25],
+        ],
+        [
+            [400, 250],
+            [400, 250 + 25],
+        ],
+        [
+            [400, 400],
+            [400, 400 + 25],
         ],
     ];
 
@@ -474,10 +494,23 @@ function isosceles({ basePoint, oppositeVertex }) {
             ctx.fillStyle = ctx.strokeStyle = "black";
             for (let r2 of rect) {
                 if (r == r2) continue;
-                if (intersection(rectangle(r), rectangle(r2))) {
+                if (rectRectintersection(rectangle(r), rectangle(r2))) {
                     ctx.fillStyle = ctx.strokeStyle = "red";
                 }
             }
+
+            for (let c of circle) {
+                if (circleRectIntersection(c, r)) {
+                    ctx.fillStyle = ctx.strokeStyle = "red";
+                }
+            }
+
+            for (let t of triangle) {
+                if (rectTriangleIntersection(rectangle(r), isosceles(t))) {
+                    ctx.fillStyle = ctx.strokeStyle = "red";
+                }
+            }
+
             for (let p of r) {
                 ctx.beginPath();
                 ctx.arc(...p, 5, 0, Math.PI * 2);
@@ -485,6 +518,75 @@ function isosceles({ basePoint, oppositeVertex }) {
             }
             ctx.beginPath();
             for (let p of rectangle(r)) {
+                ctx.lineTo(...p);
+            }
+            ctx.closePath();
+            ctx.stroke();
+        }
+
+        for (let c of circle) {
+            ctx.fillStyle = ctx.strokeStyle = "black";
+
+            for (let c2 of circle) {
+                if (c == c2) continue;
+                if (circleCircleIntersection(c, c2)) {
+                    ctx.fillStyle = ctx.strokeStyle = "red";
+                }
+            }
+
+            for (let r of rect) {
+                if (circleRectIntersection(c, r)) {
+                    ctx.fillStyle = ctx.strokeStyle = "red";
+                }
+            }
+
+            for (let t of triangle) {
+                if (circleTriangleIntersection(c, t)) {
+                    ctx.fillStyle = ctx.strokeStyle = "red";
+                }
+            }
+
+            for (let p of c) {
+                ctx.beginPath();
+                ctx.arc(...p, 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.beginPath();
+            ctx.arc(c[0][0], c[0][1], radius(c), 0, Math.PI * 2);
+
+            ctx.stroke();
+        }
+
+        for (let t of triangle) {
+            ctx.fillStyle = ctx.strokeStyle = "black";
+
+            for (let t2 of triangle) {
+                if (t == t2) continue;
+                if (triangleTriangleIntersection(isosceles(t), isosceles(t2))) {
+                    ctx.fillStyle = ctx.strokeStyle = "red";
+                }
+            }
+
+            for (let r of rect) {
+                if (rectTriangleIntersection(rectangle(r), isosceles(t))) {
+                    ctx.fillStyle = ctx.strokeStyle = "red";
+                }
+            }
+
+            for (let c of circle) {
+                if (circleTriangleIntersection(c, t)) {
+                    ctx.fillStyle = ctx.strokeStyle = "red";
+                }
+            }
+
+
+            for (let p of t) {
+                ctx.beginPath();
+                ctx.arc(...p, 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.beginPath();
+            for (let p of isosceles(t)) {
                 ctx.lineTo(...p);
             }
             ctx.closePath();
@@ -505,6 +607,24 @@ function isosceles({ basePoint, oppositeVertex }) {
         }
     };
     //do not touch
+
+    const dragCircleCenter = (e, circle) => {
+        let mouse = [e.offsetX, e.offsetY];
+        let delta = vec2.sub([], mouse, prevMouse);
+        prevMouse = mouse;
+        vec2.add(circle[0], circle[0], delta);
+        vec2.add(circle[1], circle[1], delta);
+
+
+    };
+
+    const dragCircleEdge = (e, circle) => {
+        let mouse = [e.offsetX, e.offsetY];
+        let delta = vec2.sub([], mouse, prevMouse);
+        prevMouse = mouse;
+        vec2.add(circle[1], circle[1], delta);
+    }
+
 
     const dragVtx = (e, i, rect) => {
         let mouse = [e.offsetX, e.offsetY];
@@ -527,6 +647,22 @@ function isosceles({ basePoint, oppositeVertex }) {
 
     };
 
+    const dragTriangleCenter = (e, tri) => {
+        let mouse = [e.offsetX, e.offsetY];
+        let delta = vec2d.sub([], mouse, prevMouse);
+        prevMouse = mouse;
+        let v = vec2d.sub([], tri[1], tri[0]);
+        vec2d.add(tri[0], tri[0], delta);
+        vec2d.add(tri[1], tri[0], v);
+    };
+
+    const dragTriangleEdge = (e, tri) => {
+        let mouse = [e.offsetX, e.offsetY];
+        let delta = vec2d.sub([], mouse, prevMouse);
+        prevMouse = mouse;
+        vec2d.add(tri[1], tri[1], delta);
+    };
+
     demo.onmousedown = (e) => {
         const mouse = [e.offsetX, e.offsetY];
         prevMouse = mouse;
@@ -544,6 +680,44 @@ function isosceles({ basePoint, oppositeVertex }) {
                             }
                             : (e) => {
                                 dragVtx(e, i, r);
+                                update();
+                            };
+                }
+            }
+        }
+
+        for (let c of circle) {
+            for (let i of [0, 1]) {
+                let p = c[i];
+                let d = vec2.distance(mouse, p);
+                if (d <= 5) {
+                    demo.onmousemove =
+                        i == 0
+                            ? (e) => {
+                                dragCircleCenter(e, c);
+                                update();
+                            }
+                            : (e) => {
+                                dragCircleEdge(e, c);
+                                update();
+                            };
+                }
+            }
+        }
+
+        for (let t of triangle) {
+            for (let i of [0, 1]) {
+                let p = t[i];
+                let d = vec2.distance(mouse, p);
+                if (d <= 5) {
+                    demo.onmousemove =
+                        i == 0
+                            ? (e) => {
+                                dragTriangleCenter(e, t);
+                                update();
+                            }
+                            : (e) => {
+                                dragTriangleEdge(e, t);
                                 update();
                             };
                 }
