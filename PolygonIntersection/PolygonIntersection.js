@@ -196,6 +196,36 @@ function convexPolysIntersect(poly, poly2) {
     return false;
 }
 
+function intersection(rect, rectTwo) {
+    let V = SAT.Vector;
+    let P = SAT.Polygon;
+
+    let polygon1 = new P(new V(), [
+        new V(rect[0][0], rect[0][1]), new V(rect[1][0], rect[1][1]), new V(rect[2][0], rect[2][1]), new V(rect[3][0], rect[3][1])
+    ]);
+
+    let polygon2 = new P(new V(), [
+        new V(rectTwo[0][0], rectTwo[0][1]), new V(rectTwo[1][0], rectTwo[1][1]), new V(rectTwo[2][0], rectTwo[2][1]), new V(rectTwo[3][0], rectTwo[3][1])
+    ]);
+
+    let response;
+    let collided = SAT.testPolygonPolygon(polygon1, polygon2, response);
+
+    return collided;
+}
+
+function rectangle(points) {
+    let vertices = [];
+    let center = points[0];
+    for (let i = 1; i < 5; i++) {
+        let v1 = vec2.sub([], points[i], center);
+        let v2 = vec2.sub([], points[(i % 4) + 1], center);
+        vertices.push(vec2.add([], vec2.add([], v1, v2), center))
+    }
+    //return all the vertices of the rectangle using the medians and the center
+    return vertices;
+}
+
 /**
  * Returns true iff convex polygon poly {@link closestPolyPoint intersects}
  * a circle with the given center and radius.
@@ -412,97 +442,118 @@ function isosceles({ basePoint, oppositeVertex }) {
     const ctx = demo.getContext("2d");
     let [w, h] = [demo.clientWidth, demo.clientHeight];
     const rect = [
-        { center: [270, 350], u: [1, 0], size: 100, color: "black" },
-        { center: [100, 100], u: [1, 0], size: 100, color: "black" },
-        { center: [250, 150], u: [1, 0], size: 100, color: "black" },
+        [
+            [100, 100],
+            [100 + 25, 100 + 25],
+            [100 + 25, 100 - 25],
+            [100 - 25, 100 - 25],
+            [100 - 25, 100 + 25]
+        ],
+        [
+            [200, 200],
+            [200 + 25, 200 + 25],
+            [200 + 25, 200 - 25],
+            [200 - 25, 200 - 25],
+            [200 - 25, 200 + 25]
+        ],
+        [
+            [300, 300],
+            [300 + 25, 300 + 25],
+            [300 + 25, 300 - 25],
+            [300 - 25, 300 - 25],
+            [300 - 25, 300 + 25]
+        ],
     ];
 
-    function makePts() {
-        for (let r of rect) {
-            r.poly = makeRectangle(r.center, r.u, r.size);
-            r.anchors = [r.center, ...midPoints(r.poly)];
-        }
-    }
-
-    makePts();
-
     const update = () => {
+        ctx.clearRect(0, 0, w, h);
         fillCanvas(ctx, w, h);
 
-        // rect âˆ© rect
-        for (let r1 of rect) {
-            r1.color = "black";
-            for (let r2 of rect) {
-                if (r1 == r2) continue;
-                let intersect = convexPolysIntersect(r1.poly, r2.poly);
-                if (intersect) {
-                    r1.color = "red";
-                    r2.color = "red";
-                }
-            }
-        }
 
         for (let r of rect) {
-            ctx.fillStyle = ctx.strokeStyle = r.color;
-            ctx.beginPath();
-            for (let p of r.poly) {
-                ctx.lineTo(...p);
+            ctx.fillStyle = ctx.strokeStyle = "black";
+            for (let r2 of rect) {
+                if (r == r2) continue;
+                if (intersection(rectangle(r), rectangle(r2))) {
+                    ctx.fillStyle = ctx.strokeStyle = "red";
+                }
             }
-            ctx.closePath();
-            ctx.stroke();
-
-            // Draw a black small circle at the center of the rectangle
-            ctx.beginPath();
-            ctx.arc(...r.center, 5, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Draw a black small circle in each anchor point
-            for (let p of r.anchors) {
+            for (let p of r) {
                 ctx.beginPath();
                 ctx.arc(...p, 5, 0, Math.PI * 2);
                 ctx.fill();
             }
+            ctx.beginPath();
+            for (let p of rectangle(r)) {
+                ctx.lineTo(...p);
+            }
+            ctx.closePath();
+            ctx.stroke();
         }
     }
 
-    let sel = null;
-    let prevMouse = null;
 
-    // On mouse move, calculate the delta between the previous mouse position
-    // and the current mouse position, and add the delta to the selected anchor
-    // point.
-    demo.onmousemove = (e) => {
-        if (sel) {
-            let mouse = [e.offsetX, e.offsetY];
-            let [rect, ianchor] = sel;
-            let delta = vec2d.sub([], mouse, prevMouse);
-            prevMouse = mouse;
-            if (ianchor == 0) {
-                vec2d.add(rect.center, rect.center, delta);
-            } else {
-                // Move the 
-            }
-            makePts();
-            update();
+    let prevMouse = null;
+    //do not touch
+    const dragBase = (e, rect) => {
+        let mouse = [e.offsetX, e.offsetY];
+        let delta = vec2.sub([], mouse, prevMouse);
+        prevMouse = mouse;
+        vec2.add(rect[0], rect[0], delta);
+        for (let i = 1; i < 5; i++) {
+            vec2.add(rect[i], rect[i], delta);
         }
+    };
+    //do not touch
+
+    const dragVtx = (e, i, rect) => {
+        let mouse = [e.offsetX, e.offsetY];
+        let vtx = rect[i];
+        let delta = vec2.sub([], mouse, prevMouse);
+        prevMouse = mouse;
+        vec2.add(vtx, vtx, delta);
+        vec2.sub(rect[(i + 1) % 4 + 1], rect[(i + 1) % 4 + 1], delta);
+
+        let size = Math.abs(vec2.dist(rect[(i % 4) + 1], rect[0]));
+
+        vec2.rotate(rect[(i % 4) + 1], vtx, rect[0], -Math.PI / 2);
+        vec2.sub(rect[(i % 4) + 1], rect[(i % 4) + 1], rect[0]);
+        vec2.normalize(rect[(i % 4) + 1], rect[(i % 4) + 1]);
+        vec2.scale(rect[(i % 4) + 1], rect[(i % 4) + 1], size);
+        vec2.add(rect[(i % 4) + 1], rect[(i % 4) + 1], rect[0]);
+
+
+        vec2.rotate(rect[(i - 2 + 4) % 4 + 1], rect[(i % 4) + 1], rect[0], Math.PI);
+
     };
 
     demo.onmousedown = (e) => {
-        sel = null;
         const mouse = [e.offsetX, e.offsetY];
         prevMouse = mouse;
+        demo.onmousemove = null;
         for (let r of rect) {
-            for (let [ianchor, p] of r.anchors.entries()) {
-                if (vec2d.distance(mouse, p) <= 5) {
-                    sel = [r, ianchor];
+            for (let i of [0, 1, 2, 3, 4]) {
+                let p = r[i];
+                let d = vec2.distance(mouse, p);
+                if (d <= 5) {
+                    demo.onmousemove =
+                        i == 0
+                            ? (e) => {
+                                dragBase(e, r);
+                                update();
+                            }
+                            : (e) => {
+                                dragVtx(e, i, r);
+                                update();
+                            };
                 }
             }
         }
-    }
+    };
 
     demo.onmouseup = () => {
-        sel = null;
-    }
+        demo.onmousemove = null;
+    };
     update();
 })();
 
