@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Intersect Rectangles</title>
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+</head>
+
+<body>
+    <canvas id="theCanvas" width="500" height="500">
+        Please upgrade your browser.
+    </canvas>
+
+    <!-- gl-matrix.js is not esm compatible -->
+    <script src="..\utils\toji-gl-matrix-8962b2e\dist\gl-matrix.js"></script>
+    <script type="text/javascript">
+        // deconstruct glMatrix object.
+        const { mat2, mat3, mat4, vec2, vec3, vec4 } = glMatrix;
+    </script>
+
+    <script type="module" src="PolygonIntersection.js"></script>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+
+    <script>
+        const queryString = window.location.search;
+        const urlParams = new URLSearchParams(queryString);
+        const x = urlParams.get("w") || "500";
+        const y = urlParams.get("h") || "500";
+
+        let canvas = document.getElementById("theCanvas");
+        canvas.width = x;
+        canvas.height = y;
+    </script>
+</body>
+
+</html>
