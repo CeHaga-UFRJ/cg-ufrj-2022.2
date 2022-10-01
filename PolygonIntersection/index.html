@@ -2,15 +2,23 @@
 <html>
 
 <head>
-    <title>Intersect Rectangles</title>
+    <title>Intersection of Circles and Polygons</title>
     <meta http-equiv="Content-type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </head>
 
-<body>
-    <canvas id="theCanvas" width="500" height="500">
-        Please upgrade your browser.
-    </canvas>
+<!-- Set background to darker color -->
+
+<body style="background-color: #333333;">
+    <div style="text-align: center; color: white;">
+        <h1>Intersection of Circles and Polygons</h1>
+    </div>
+
+    <div style="width: 100%; height: 100%; display: flex; justify-content: center; align-items: top;">
+        <canvas id="theCanvas" width="500" height="500">
+            Please upgrade your browser.
+        </canvas>
+    </div>
 
     <!-- gl-matrix.js is not esm compatible -->
     <script src="..\utils\toji-gl-matrix-8962b2e\dist\gl-matrix.js"></script>

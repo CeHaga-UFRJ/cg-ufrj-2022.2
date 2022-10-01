@@ -1,31 +1,10 @@
 /**
  *  @file
  *
- *  <p>InterseÃ§Ã£o entre cÃ­rculos e polÃ­gonos convexos.</p>
+ *  <p>Interseção entre cí­rculos e polí­gonos convexos.</p>
  *
- *  <pre>
- *  Documentation:
- *  - Ubuntu:
- *     - sudo apt install jsdoc-toolkit
- *  - MacOS:
- *     - sudo port install npm7 (or npm8)
- *     - sudo npm install -g jsdoc
- *  - jsdoc -d docCircRec circRec.js
- *
- *  Requirements:
- *  - npm init
- *  - npm install gl-matrix
- *  </pre>
- *
- *  @author Paulo Roma & Claudio EsperanÃ§a
- *  @since 08/08/2022
- *  @see http://lcg.ufrj.br/cwdc/10-html5css3/circRec.html
- *  @see <a href="../circRecNoSource.js">source</a>
- *  @see https://observablehq.com/@esperanc/configurando-um-triangulo-isosceles
- *  @see https://drive.google.com/file/d/1MjlBWjBP-5ijNTaPDL7-7OOnd8906z6Y/view
- *  @see https://glmatrix.net
- *  @see https://dens.website/tutorials/webgl/gl-matrix
- *  @see <img src="../rect-circle.png" width="768">
+ *  @author Carlos Bravo
+ *  @since 29/09/2022
  */
 
 "use strict";
@@ -196,60 +175,6 @@ function convexPolysIntersect(poly, poly2) {
     return false;
 }
 
-function rectRectintersection(rect, rectTwo) {
-    let V = SAT.Vector;
-    let P = SAT.Polygon;
-
-    let polygon1 = new P(new V(), [
-        new V(rect[0][0], rect[0][1]), new V(rect[1][0], rect[1][1]), new V(rect[2][0], rect[2][1]), new V(rect[3][0], rect[3][1])
-    ]);
-
-    let polygon2 = new P(new V(), [
-        new V(rectTwo[0][0], rectTwo[0][1]), new V(rectTwo[1][0], rectTwo[1][1]), new V(rectTwo[2][0], rectTwo[2][1]), new V(rectTwo[3][0], rectTwo[3][1])
-    ]);
-
-    let response;
-    let collided = SAT.testPolygonPolygon(polygon1, polygon2, response);
-
-    return collided;
-}
-
-function rectTriangleIntersection(rect, triangle) {
-    let V = SAT.Vector;
-    let P = SAT.Polygon;
-
-    let polygon1 = new P(new V(), [
-        new V(rect[0][0], rect[0][1]), new V(rect[1][0], rect[1][1]), new V(rect[2][0], rect[2][1]), new V(rect[3][0], rect[3][1])
-    ]);
-
-    let polygon2 = new P(new V(), [
-        new V(triangle[0][0], triangle[0][1]), new V(triangle[1][0], triangle[1][1]), new V(triangle[2][0], triangle[2][1])
-    ]);
-
-    let response;
-    let collided = SAT.testPolygonPolygon(polygon1, polygon2, response);
-
-    return collided;
-}
-
-function triangleTriangleIntersection(triangle, triangleTwo) {
-    let V = SAT.Vector;
-    let P = SAT.Polygon;
-
-    let polygon1 = new P(new V(), [
-        new V(triangle[0][0], triangle[0][1]), new V(triangle[1][0], triangle[1][1]), new V(triangle[2][0], triangle[2][1])
-    ]);
-
-    let polygon2 = new P(new V(), [
-        new V(triangleTwo[0][0], triangleTwo[0][1]), new V(triangleTwo[1][0], triangleTwo[1][1]), new V(triangleTwo[2][0], triangleTwo[2][1])
-    ]);
-
-    let response;
-    let collided = SAT.testPolygonPolygon(polygon1, polygon2, response);
-
-    return collided;
-}
-
 function rectangle(points) {
     let vertices = [];
     let center = points[0];
@@ -262,48 +187,22 @@ function rectangle(points) {
     return vertices;
 }
 
-/**
- * Returns true iff convex polygon poly {@link closestPolyPoint intersects}
- * a circle with the given center and radius.
- * @param {Array<Array<Number,Number>>} poly polygon.
- * @param {Array<Number,Number>} center circle center.
- * @param {Number} radius circle radius.
- * @returns {Boolean} intersect or not.
- */
-function convexPolyCircleIntersect(poly, center, radius) {
-    let n = poly.length;
-    let p1, p2;
-    let i;
-    for (i = 0; i < n; i++) {
-        p1 = poly[i];
-        p2 = poly[(i + 1) % n];
-        if (vec2d.segmentCircleIntersect(p1, p2, center, radius)) {
-            return true;
-        }
-    }
-    return false;
+function isosceles(tri) {
+    let basePoint = tri[0];
+    let oppositeVertex = tri[1];
+    const u = vec2d.sub([], basePoint, oppositeVertex);
+    const v = [-u[1], u[0]];
+    const w = [u[1], -u[0]];
+    return [
+        oppositeVertex,
+        vec2d.add([], basePoint, v),
+        vec2d.add([], basePoint, w),
+    ];
 }
 
-/**
- * Returns true iff a circle intersects another circle with the given center and radius.
- * @param {Array<Number,Number>} center1 first circle center.
- * @param {Number} radius1 first circle radius.
- * @param {Array<Number,Number>} center2 second circle center.
- * @param {Number} radius2 second circle radius.
- * @returns {Boolean} intersect or not.
- * @see https://milania.de/blog/Intersection_area_of_two_circles_with_implementation_in_C%2B%2B
- * @see <img src="../IntersectingCirclesArea_CircularSegmentsSmallAngle.png" width="320">
- */
-function circleCircleIntersection(c1, c2) {
-    let center1 = c1[0];
-    let radius1 = vec2d.dist(c1[0], c1[1]);
-    let center2 = c2[0];
-    let radius2 = vec2d.dist(c2[0], c2[1]);
-    let d = vec2d.dist(center1, center2);
-    if (d > radius1 + radius2) {
-        return false;
-    }
-    return true;
+function radius(points) {
+    let radius = Math.abs(vec2.distance(points[0], points[1]));
+    return radius;
 }
 
 function distToSegment(p, a, b) {
@@ -325,6 +224,18 @@ function pointInConvexPoly(p, poly) {
         if (Math.abs(o - prevOrient) > 1) return false;
         prevOrient = o;
         prevPoint = q;
+    }
+    return true;
+}
+
+function circleCircleIntersection(c1, c2) {
+    let center1 = c1[0];
+    let radius1 = vec2d.dist(c1[0], c1[1]);
+    let center2 = c2[0];
+    let radius2 = vec2d.dist(c2[0], c2[1]);
+    let d = vec2d.dist(center1, center2);
+    if (d > radius1 + radius2) {
+        return false;
     }
     return true;
 }
@@ -355,76 +266,79 @@ function circleTriangleIntersection(c, t) {
     return false;
 }
 
-/**
- * Returns a rectangular polygon in the form of a vertex circulation,
- * given:
- * <ul>
- * <li>its center, </li>
- * <li>a vector (u) pointing from the center to the midpoint
- *       of one of its sides, </li>
- * <li>and the size of that side.</li>
- * </ul>
- * @param {Array<Number,Number>} center rectangle center.
- * @param {Array<Number,Number>} u orientation vector.
- * @param {Number} size side size.
- * @returns {Array<Array<Number,Number>>} a rectangle (a polygon).
- * @see <img src="../cRv2l.png" width="320">
- */
-function makeRectangle(center, u, size) {
-    let v = vec2d.rotate([], u, [0, 0], Math.PI / 2);
-    let halfSize = size / 2;
-    let p1 = vec2d.add([], center, vec2d.scale([], u, halfSize));
-    let p2 = vec2d.add([], center, vec2d.scale([], v, halfSize));
-    let p3 = vec2d.add([], center, vec2d.scale([], u, -halfSize));
-    let p4 = vec2d.add([], center, vec2d.scale([], v, -halfSize));
-    return [p1, p2, p3, p4];
+function rectRectintersection(rect, rectTwo) {
+    rect = rectangle(rect);
+    rectTwo = rectangle(rectTwo);
+
+    let V = SAT.Vector;
+    let P = SAT.Polygon;
+
+    let polygon1 = new P(new V(), [
+        new V(rect[0][0], rect[0][1]), new V(rect[1][0], rect[1][1]), new V(rect[2][0], rect[2][1]), new V(rect[3][0], rect[3][1])
+    ]);
+
+    let polygon2 = new P(new V(), [
+        new V(rectTwo[0][0], rectTwo[0][1]), new V(rectTwo[1][0], rectTwo[1][1]), new V(rectTwo[2][0], rectTwo[2][1]), new V(rectTwo[3][0], rectTwo[3][1])
+    ]);
+
+    let response;
+    let collided = SAT.testPolygonPolygon(polygon1, polygon2, response);
+
+    return collided;
 }
 
-/**
- * Returns an array with the mid-points of the edges of polygon poly.
- * @param {Array<Array<Number,Number>>} poly polygon.
- * @returns {Array<Array<Number,Number>>} mid-points.
- */
-function midPoints(poly) {
-    let n = poly.length;
-    let midPoints = [];
-    let p1, p2;
-    let i;
-    for (i = 0; i < n; i++) {
-        p1 = poly[i];
-        p2 = poly[(i + 1) % n];
-        midPoints.push(vMidpoint(p1, p2));
-    }
-    return midPoints;
+function rectTriangleIntersection(rect, triangle) {
+    rect = rectangle(rect);
+    triangle = isosceles(triangle);
+
+    let V = SAT.Vector;
+    let P = SAT.Polygon;
+
+    let polygon1 = new P(new V(), [
+        new V(rect[0][0], rect[0][1]), new V(rect[1][0], rect[1][1]), new V(rect[2][0], rect[2][1]), new V(rect[3][0], rect[3][1])
+    ]);
+
+    let polygon2 = new P(new V(), [
+        new V(triangle[0][0], triangle[0][1]), new V(triangle[1][0], triangle[1][1]), new V(triangle[2][0], triangle[2][1])
+    ]);
+
+    let response;
+    let collided = SAT.testPolygonPolygon(polygon1, polygon2, response);
+
+    return collided;
 }
 
-/**
- * Returns the 3 vertices of an isosceles triangle
- * defined by the center point of its base and the
- * opposite vertex.
- * @param {Array<Number,Number>} basePoint base midpoint.
- * @param {Array<Number,Number>} oppositeVertex opposite vertex.
- * @return {Array<Array<Number,Number>, Array<Number,Number>, Array<Number,Number>>}
- * an isosceles triangle (a convex polygon).
- * @see https://en.wikipedia.org/wiki/Isosceles_triangle
- * @see <img src="../Isosceles-Triangle.png" width="256">
- */
-function isosceles(tri) {
-    let basePoint = tri[0];
-    let oppositeVertex = tri[1];
-    const u = vec2d.sub([], basePoint, oppositeVertex);
-    const v = [-u[1], u[0]];
-    const w = [u[1], -u[0]];
-    return [
-        oppositeVertex,
-        vec2d.add([], basePoint, v),
-        vec2d.add([], basePoint, w),
-    ];
+function rectCircleIntersection(rect, circle) {
+    return circleRectIntersection(circle, rect);
 }
 
-function radius(points) {
-    let radius = Math.abs(vec2.distance(points[0], points[1]));
-    return radius;
+function triangleRectIntersection(triangle, rect) {
+    return rectTriangleIntersection(rect, triangle);
+}
+
+function triangleTriangleIntersection(triangle, triangleTwo) {
+    triangle = isosceles(triangle);
+    triangleTwo = isosceles(triangleTwo);
+
+    let V = SAT.Vector;
+    let P = SAT.Polygon;
+
+    let polygon1 = new P(new V(), [
+        new V(triangle[0][0], triangle[0][1]), new V(triangle[1][0], triangle[1][1]), new V(triangle[2][0], triangle[2][1])
+    ]);
+
+    let polygon2 = new P(new V(), [
+        new V(triangleTwo[0][0], triangleTwo[0][1]), new V(triangleTwo[1][0], triangleTwo[1][1]), new V(triangleTwo[2][0], triangleTwo[2][1])
+    ]);
+
+    let response;
+    let collided = SAT.testPolygonPolygon(polygon1, polygon2, response);
+
+    return collided;
+}
+
+function triangleCircleIntersection(triangle, circle) {
+    return circleTriangleIntersection(circle, triangle);
 }
 
 (function PolygonsDemo() {
@@ -434,54 +348,54 @@ function radius(points) {
     const rect = [
         [
             [100, 100],
-            [100 + 25, 100 + 25],
-            [100 + 25, 100 - 25],
-            [100 - 25, 100 - 25],
-            [100 - 25, 100 + 25]
+            [100, 100 + 50],
+            [100 + 50, 100],
+            [100, 100 - 50],
+            [100 - 50, 100]
         ],
         [
             [100, 250],
-            [100 + 25, 250 + 25],
-            [100 + 25, 250 - 25],
-            [100 - 25, 250 - 25],
-            [100 - 25, 250 + 25]
+            [100, 250 + 50],
+            [100 + 50, 250],
+            [100, 250 - 50],
+            [100 - 50, 250]
         ],
         [
             [100, 400],
-            [100 + 25, 400 + 25],
-            [100 + 25, 400 - 25],
-            [100 - 25, 400 - 25],
-            [100 - 25, 400 + 25]
+            [100, 400 + 50],
+            [100 + 50, 400],
+            [100, 400 - 50],
+            [100 - 50, 400]
         ],
     ];
 
     const circle = [
         [
             [250, 100],
-            [250 + 25, 100 + 25],
+            [250, 100 + 50],
         ],
         [
             [250, 250],
-            [250 + 25, 250 + 25],
+            [250, 250 + 50],
         ],
         [
             [250, 400],
-            [250 + 25, 400 + 25],
+            [250, 400 + 50],
         ],
     ];
 
     const triangle = [
         [
             [400, 100],
-            [400, 100 + 25],
+            [400, 100 + 50],
         ],
         [
             [400, 250],
-            [400, 250 + 25],
+            [400, 250 + 50],
         ],
         [
             [400, 400],
-            [400, 400 + 25],
+            [400, 400 + 50],
         ],
     ];
 
@@ -494,19 +408,19 @@ function radius(points) {
             ctx.fillStyle = ctx.strokeStyle = "black";
             for (let r2 of rect) {
                 if (r == r2) continue;
-                if (rectRectintersection(rectangle(r), rectangle(r2))) {
+                if (rectRectintersection(r, r2)) {
                     ctx.fillStyle = ctx.strokeStyle = "red";
                 }
             }
 
             for (let c of circle) {
-                if (circleRectIntersection(c, r)) {
+                if (rectCircleIntersection(r, c)) {
                     ctx.fillStyle = ctx.strokeStyle = "red";
                 }
             }
 
             for (let t of triangle) {
-                if (rectTriangleIntersection(rectangle(r), isosceles(t))) {
+                if (rectTriangleIntersection(r, t)) {
                     ctx.fillStyle = ctx.strokeStyle = "red";
                 }
             }
@@ -562,19 +476,19 @@ function radius(points) {
 
             for (let t2 of triangle) {
                 if (t == t2) continue;
-                if (triangleTriangleIntersection(isosceles(t), isosceles(t2))) {
+                if (triangleTriangleIntersection(t, t2)) {
                     ctx.fillStyle = ctx.strokeStyle = "red";
                 }
             }
 
             for (let r of rect) {
-                if (rectTriangleIntersection(rectangle(r), isosceles(t))) {
+                if (triangleRectIntersection(t, r)) {
                     ctx.fillStyle = ctx.strokeStyle = "red";
                 }
             }
 
             for (let c of circle) {
-                if (circleTriangleIntersection(c, t)) {
+                if (triangleCircleIntersection(t, c)) {
                     ctx.fillStyle = ctx.strokeStyle = "red";
                 }
             }
