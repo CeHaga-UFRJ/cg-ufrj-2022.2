@@ -120,57 +120,11 @@ function fillCanvas(ctx, w, h) {
     ctx.lineWidth = 1;
 }
 
-/**
- * Returns the closest point of the border of the polygon poly to p.
- * @param {Array<Number,Number>} p point.
- * @param {Array<Array<Number,Number>>} poly polygon.
- * @returns {Array<Number,Number>} closest point.
- * @see <img src="../closest.jpg" width="384">
- */
-function closestPolyPoint(p, poly) {
-    let closest = poly[0];
-    let minDist = vec2.distance(p, closest);
+// Check if polygon degenerates to a line.
+function isDegenerate(poly) {
+    const p0 = poly[0];
     for (let i = 1; i < poly.length; i++) {
-        let dist = vec2.distance(p, poly[i]);
-        if (dist < minDist) {
-            minDist = dist;
-            closest = poly[i];
-        }
-    }
-    return closest;
-}
-
-/**
- * <p>Returns true iff convex polygons poly and poly2 intersect.</p>
- * The algorithm is based on the separated axis theorem (SAT), which states that, <br>
- * if two polys do not intersect, then there is a separation line between them, <br>
- * in such a way that the vertices of poly are on one side of the line,<br>
- * and the vertices of poly2 are on the other side.
- * <p>It is enough to test the edges of each polygon as a separation line.<br>
- * If none of them do separate the polys, then they must intersect each other.</p>
- * Check the <a href="../docUtil/global.html#orient">orient</a> predicate for deciding
- * on which side of a line a point lies.
- * @param {Array<Array<Number,Number>>} poly first polygon.
- * @param {Array<Array<Number,Number>>} poly2 second polygon.
- * @returns {Boolean} intersect or not.
- * @see http://0x80.pl/articles/convex-polygon-intersection/article.html
- * @see <img src="../sample.png" width="196">
- */
-function convexPolysIntersect(poly, poly2) {
-    let n = poly.length;
-    let n2 = poly2.length;
-    let p1, p2, p3, p4;
-    let i, j;
-    for (i = 0; i < n; i++) {
-        p1 = poly[i];
-        p2 = poly[(i + 1) % n];
-        for (j = 0; j < n2; j++) {
-            p3 = poly2[j];
-            p4 = poly2[(j + 1) % n2];
-            if (vec2d.segmentsIntersect(p1, p2, p3, p4)) {
-                return true;
-            }
-        }
+        if (vec2d.equals(p0, poly[i])) return true;
     }
     return false;
 }
@@ -240,16 +194,42 @@ function circleCircleIntersection(c1, c2) {
     return true;
 }
 
+// Check if any point in the polygon is inside the circle.
+function circlePolyIntersection(c, poly) {
+    let center = c[0];
+    let radius = vec2d.dist(c[0], c[1]);
+    for (let p of poly) {
+        if (vec2d.dist(center, p) < radius) return true;
+    }
+    return false;
+}
+
+// Check if polygon is a point
+function isPoint(poly) {
+    let p0 = poly[0];
+    for (let i = 1; i < poly.length; i++) {
+        if (!vec2d.equals(p0, poly[i])) return false;
+    }
+    return true;
+}
+
 function circleRectIntersection(c, r) {
     let circleCenter = c[0];
     let radius = vec2d.dist(c[0], c[1]);
     let rectanglePoints = rectangle(r);
 
-    if (pointInConvexPoly(circleCenter, rectanglePoints)) return true;
-    for (let i = 0; i < 4; i++) {
-        if (distToSegment(circleCenter, rectanglePoints[i], rectanglePoints[(i + 1) % 4]) <= radius) return true;
+    if (isPoint(rectanglePoints)) {
+        return circleCircleIntersection(c, [rectanglePoints[0], rectanglePoints[0]]);
     }
 
+    if (pointInConvexPoly(circleCenter, rectanglePoints) && !isDegenerate(rectanglePoints)) {
+        return true;
+    }
+
+    for (let i = 0; i < 4; i++) {
+        if (vec2d.equals(rectanglePoints[i], rectanglePoints[(i + 1) % 4])) continue;
+        if (distToSegment(circleCenter, rectanglePoints[i], rectanglePoints[(i + 1) % 4]) <= radius) return true;
+    }
     return false;
 }
 
@@ -258,8 +238,17 @@ function circleTriangleIntersection(c, t) {
     let radius = vec2d.dist(c[0], c[1]);
     let trianglePoints = isosceles(t);
 
-    if (pointInConvexPoly(circleCenter, trianglePoints)) return true;
+    if (isPoint(trianglePoints)) {
+        return circleCircleIntersection(c, [trianglePoints[0], trianglePoints[0]]);
+    }
+
+
+    if (pointInConvexPoly(circleCenter, trianglePoints) && !isDegenerate(trianglePoints)) {
+        return true;
+    }
+
     for (let i = 0; i < 3; i++) {
+        if (vec2d.equals(trianglePoints[i], trianglePoints[(i + 1) % 3])) continue;
         if (distToSegment(circleCenter, trianglePoints[i], trianglePoints[(i + 1) % 3]) <= radius) return true;
     }
 
@@ -353,20 +342,20 @@ function triangleCircleIntersection(triangle, circle) {
             [100, 100 - 50],
             [100 - 50, 100]
         ],
-        [
-            [100, 250],
-            [100, 250 + 50],
-            [100 + 50, 250],
-            [100, 250 - 50],
-            [100 - 50, 250]
-        ],
-        [
-            [100, 400],
-            [100, 400 + 50],
-            [100 + 50, 400],
-            [100, 400 - 50],
-            [100 - 50, 400]
-        ],
+        // [
+        //     [100, 250],
+        //     [100, 250 + 50],
+        //     [100 + 50, 250],
+        //     [100, 250 - 50],
+        //     [100 - 50, 250]
+        // ],
+        // [
+        //     [100, 400],
+        //     [100, 400 + 50],
+        //     [100 + 50, 400],
+        //     [100, 400 - 50],
+        //     [100 - 50, 400]
+        // ],
     ];
 
     const circle = [
@@ -374,14 +363,14 @@ function triangleCircleIntersection(triangle, circle) {
             [250, 100],
             [250, 100 + 50],
         ],
-        [
-            [250, 250],
-            [250, 250 + 50],
-        ],
-        [
-            [250, 400],
-            [250, 400 + 50],
-        ],
+        // [
+        //     [250, 250],
+        //     [250, 250 + 50],
+        // ],
+        // [
+        //     [250, 400],
+        //     [250, 400 + 50],
+        // ],
     ];
 
     const triangle = [
@@ -389,14 +378,14 @@ function triangleCircleIntersection(triangle, circle) {
             [400, 100],
             [400, 100 + 50],
         ],
-        [
-            [400, 250],
-            [400, 250 + 50],
-        ],
-        [
-            [400, 400],
-            [400, 400 + 50],
-        ],
+        //     [
+        //         [400, 250],
+        //         [400, 250 + 50],
+        //     ],
+        //     [
+        //         [400, 400],
+        //         [400, 400 + 50],
+        //     ],
     ];
 
     const update = () => {
