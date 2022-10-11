@@ -175,6 +175,7 @@ function pointInConvexPoly(p, poly) {
     let prevOrient = 0;
     for (let q of poly) {
         const o = vec2d.orient(prevPoint, q, p);
+        if (o === 0) continue;
         if (Math.abs(o - prevOrient) > 1) return false;
         prevOrient = o;
         prevPoint = q;
@@ -241,7 +242,6 @@ function circleTriangleIntersection(c, t) {
     if (isPoint(trianglePoints)) {
         return circleCircleIntersection(c, [trianglePoints[0], trianglePoints[0]]);
     }
-
 
     if (pointInConvexPoly(circleCenter, trianglePoints) && !isDegenerate(trianglePoints)) {
         return true;
